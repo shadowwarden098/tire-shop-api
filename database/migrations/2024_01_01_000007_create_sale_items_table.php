@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('sale_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('sale_id')->constrained()->onDelete('cascade');
+            $table->foreignId('product_id')->constrained();
+            $table->integer('quantity');
+            $table->decimal('unit_price_usd', 10, 2); // Precio unitario en USD
+            $table->decimal('unit_cost_usd', 10, 2); // Costo unitario en USD
+            $table->decimal('unit_price_pen', 10, 2); // Precio unitario en PEN
+            $table->decimal('subtotal_pen', 12, 2);
+            $table->decimal('discount_pen', 10, 2)->default(0);
+            $table->decimal('total_pen', 12, 2);
+            $table->timestamps();
+            
+            $table->index('sale_id');
+            $table->index('product_id');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('sale_items');
+    }
+};
