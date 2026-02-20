@@ -19,7 +19,7 @@ class Vehicle extends Model
         'tire_size',
         'vehicle_type',
         'mileage',
-        'notes',
+        'tire_size',
     ];
 
     protected $casts = [
