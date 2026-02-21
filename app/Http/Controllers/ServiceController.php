@@ -11,7 +11,7 @@ use Carbon\Carbon;
 class ServiceController extends Controller
 {
     /**
-     * Listar servicios disponibles
+     
      */
     public function index(Request $request)
     {

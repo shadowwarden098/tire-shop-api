@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return view('welcome');
-});
 use Rap2hpoutre\LaravelLogViewer\LogViewerController;
 
+// Log viewer
 Route::get('log-viewer', [LogViewerController::class, 'index']);
+
+// SPA — todas las rutas van al blade que monta Vue
+Route::get('/{any?}', function () {
+    return view('app');
+})->where('any', '^(?!api).*');

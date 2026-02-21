@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('year');
             $table->string('plate')->unique();
             $table->string('color')->nullable();
-            $table->string('tire_size'); // Tamaño de llanta recomendado
+            $table->string('tire_size')->nullable()->default('N/A');
             $table->string('vehicle_type')->default('Automóvil'); // Automóvil, Camioneta, SUV, etc.
             $table->integer('mileage')->nullable(); // Kilometraje
             $table->text('notes')->nullable();
