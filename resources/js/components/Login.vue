@@ -1,287 +1,325 @@
 <template>
-  <div class="welcome-page">
-    <div class="bg-glow g1"></div>
-    <div class="bg-glow g2"></div>
+  <div class="app-shell">
 
-    <!-- PASO 1: Elegir rol -->
-    <div v-if="step === 'choose'" class="card">
-      <div class="card-brand">
-        <span class="brand-icon">⬡</span>
-        <div>
-          <div class="brand-name">Importaciones Adan</div>
-          <div class="brand-sub">SISTEMA DE GESTIÓN</div>
-        </div>
-      </div>
+    <!-- Sin layout para login -->
+    <router-view v-if="$route.meta && $route.meta.isLogin" />
 
-      <h1 class="card-title">Bienvenido</h1>
-      <p class="card-desc">¿Cómo deseas ingresar al sistema?</p>
-
-      <div class="role-options">
-        <button class="role-btn role-employee" @click="enterAsEmployee">
-          <div class="role-icon">👤</div>
-          <div class="role-info">
-            <div class="role-name">Empleado</div>
-            <div class="role-hint">Acceso directo sin contraseña</div>
-          </div>
-          <span class="role-arrow">→</span>
-        </button>
-
-        <button class="role-btn role-admin" @click="step = 'login'">
-          <div class="role-icon">🔐</div>
-          <div class="role-info">
-            <div class="role-name">Administrador</div>
-            <div class="role-hint">Requiere usuario y contraseña</div>
-          </div>
-          <span class="role-arrow">→</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- PASO 2: Formulario Admin -->
-    <div v-if="step === 'login'" class="card">
-      <button class="btn-back" @click="step = 'choose'">← Volver</button>
-
-      <div class="card-brand">
-        <span class="brand-icon">⬡</span>
-        <div>
-          <div class="brand-name">Importaciones Adan</div>
-          <div class="brand-sub">SISTEMA DE GESTIÓN</div>
-        </div>
-      </div>
-
-      <h1 class="card-title">Acceso Admin</h1>
-      <p class="card-desc">Ingresa tus credenciales de administrador.</p>
-
-      <form @submit.prevent="handleLogin" class="login-form">
-        <div class="form-group">
-          <label>Correo electrónico</label>
-          <input
-            v-model="email"
-            type="email"
-            required
-            placeholder="admin@tireshop.com"
-            autocomplete="email"
-            :disabled="loading"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Contraseña</label>
-          <div class="pass-wrap">
-            <input
-              v-model="password"
-              :type="showPass ? 'text' : 'password'"
-              required
-              placeholder="••••••••"
-              autocomplete="current-password"
-              :disabled="loading"
-            />
-            <button type="button" class="pass-eye" @click="showPass = !showPass">
-              {{ showPass ? '🙈' : '👁' }}
-            </button>
+    <!-- Layout principal -->
+    <template v-else>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-icon">⬡</span>
+          <div>
+            <div class="brand-name">Importaciones Adan</div>
+            <div class="brand-sub">Sistema de Gestión</div>
           </div>
         </div>
 
-        <div class="login-error" v-if="error">
-          <span>⚠</span> {{ error }}
-        </div>
+        <nav class="sidebar-nav">
+          <router-link to="/dashboard" class="nav-item" active-class="active">
+            <span class="nav-icon">◈</span>
+            <span>Menu</span>
+          </router-link>
 
-        <button type="submit" class="btn-login" :disabled="loading">
-          <span v-if="loading" class="spinner-sm"></span>
-          {{ loading ? 'Verificando...' : 'Ingresar' }}
-        </button>
-      </form>
-    </div>
+          <router-link to="/products" class="nav-item" active-class="active">
+            <span class="nav-icon">◉</span>
+            <span>Productos</span>
+          </router-link>
+
+          <router-link to="/customers" class="nav-item" active-class="active">
+            <span class="nav-icon">◎</span>
+            <span>Clientes</span>
+          </router-link>
+
+          <router-link to="/sales" class="nav-item" active-class="active">
+            <span class="nav-icon">◆</span>
+            <span>Ventas</span>
+          </router-link>
+
+          <router-link to="/services" class="nav-item" active-class="active">
+            <span class="nav-icon">◈</span>
+            <span>Servicios</span>
+          </router-link>
+
+          <!-- Solo admin -->
+          <template v-if="isAdmin">
+            <div class="nav-separator"></div>
+            <div class="nav-section-label">Administración</div>
+            <router-link to="/reports" class="nav-item" active-class="active">
+              <span class="nav-icon">◉</span>
+              <span>Reportes</span>
+            </router-link>
+          </template>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="exchange-rate" v-if="exchangeRate">
+            <div class="er-label">Tipo de Cambio</div>
+            <div class="er-value">1 USD = S/ {{ exchangeRate.sell_rate }} PEN</div>
+            <div class="er-source">Actualizado • {{ formatExchangeDate(exchangeRate.date) }}</div>
+          </div>
+
+          <!-- Admin logueado -->
+          <div class="user-bar" v-if="isAdmin">
+            <div class="user-info">
+              <div class="user-avatar">{{ currentUser.name[0].toUpperCase() }}</div>
+              <div>
+                <div class="user-name">{{ currentUser.name }}</div>
+                <div class="user-role">Administrador</div>
+              </div>
+            </div>
+            <button class="btn-logout" @click="logout" title="Cerrar sesión">⏻</button>
+          </div>
+
+          <!-- Modo empleado -->
+          <div class="employee-bar" v-else>
+            <span class="employee-icon">👤</span>
+            <div class="employee-detail">
+              <div class="employee-label">Modo Empleado</div>
+              <button class="btn-admin-login" @click="$router.push('/')">
+                Ingresar como Admin →
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <router-view />
+      </main>
+    </template>
+
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
-const router   = useRouter()
-const step     = ref('choose')
-const email    = ref('admin@tireshop.com')
-const password = ref('')
-const loading  = ref(false)
-const error    = ref('')
-const showPass = ref(false)
+const router = useRouter()
+const route  = useRoute()
 
-const enterAsEmployee = () => {
+const exchangeRate = ref(null)
+const token    = ref(localStorage.getItem('auth_token'))
+const userJson = ref(localStorage.getItem('auth_user'))
+
+// Re-leer localStorage cada vez que cambia la ruta
+watch(route, () => {
+  token.value    = localStorage.getItem('auth_token')
+  userJson.value = localStorage.getItem('auth_user')
+})
+
+const currentUser = computed(() => {
+  if (userJson.value) {
+    try { return JSON.parse(userJson.value) } catch { return null }
+  }
+  return null
+})
+
+const isAdmin = computed(() => currentUser.value && currentUser.value.role === 'admin')
+
+const logout = async () => {
+  if (token.value) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token.value}` },
+      })
+    } catch {}
+  }
   localStorage.removeItem('auth_token')
   localStorage.removeItem('auth_user')
   localStorage.setItem('auth_role', 'employee')
+  token.value    = null
+  userJson.value = null
   router.push('/')
 }
 
-const handleLogin = async () => {
-  loading.value = true
-  error.value   = ''
+const formatExchangeDate = (d) => {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('es-PE', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  })
+}
+
+onMounted(async () => {
   try {
-    const res  = await fetch('/api/auth/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body:    JSON.stringify({ email: email.value, password: password.value }),
-    })
+    const res  = await fetch('/api/exchange-rate/current')
     const json = await res.json()
     if (json.success) {
-      localStorage.setItem('auth_token', json.token)
-      localStorage.setItem('auth_user',  JSON.stringify(json.user))
-      localStorage.setItem('auth_role',  'admin')
-      router.push('/')
-    } else {
-      error.value = json.message || 'Credenciales incorrectas.'
+      exchangeRate.value = {
+        sell_rate: new Intl.NumberFormat('es-PE', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        }).format(json.data.sell_rate),
+        date: json.data.date
+      }
     }
   } catch (e) {
-    error.value = 'No se pudo conectar con el servidor.'
-  } finally {
-    loading.value = false
+    console.error('Error cargando tipo de cambio')
   }
-}
+})
 </script>
 
-<style scoped>
-.welcome-page {
-  min-height: 100vh;
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0a0c10;
+  --bg2:       #0f1218;
+  --bg3:       #161b24;
+  --border:    #1e2633;
+  --accent:    #f97316;
+  --green:     #22c55e;
+  --red:       #ef4444;
+  --blue:      #3b82f6;
+  --text:      #e2e8f0;
+  --text2:     #94a3b8;
+  --text3:     #475569;
+  --sidebar-w: 220px;
+}
+
+html, body {
+  height: 100%;
   background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.bg-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.06;
-  pointer-events: none;
-}
-.g1 { width: 600px; height: 600px; background: var(--accent); top: -200px; right: -100px; }
-.g2 { width: 500px; height: 500px; background: var(--blue);   bottom: -150px; left: -80px; }
-
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 40px;
-  width: 100%;
-  max-width: 420px;
-  position: relative;
-  z-index: 1;
-}
-
-.btn-back {
-  background: none;
-  border: none;
-  color: var(--text3);
+  color: var(--text);
   font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 24px;
-  display: block;
-  transition: color 0.15s;
 }
-.btn-back:hover { color: var(--text2); }
 
-.card-brand {
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+</style>
+
+<style scoped>
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.sidebar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
+  padding: 24px 20px;
+  border-bottom: 1px solid var(--border);
 }
-.brand-icon { font-size: 26px; color: var(--accent); }
-.brand-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; }
-.brand-sub  { font-size: 9px; color: var(--text3); letter-spacing: 0.15em; margin-top: 2px; }
+.brand-icon { font-size: 28px; color: var(--accent); }
+.brand-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; }
+.brand-sub  { font-size: 10px; color: var(--text3); text-transform: uppercase; }
 
-.card-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; }
-.card-desc  { font-size: 12px; color: var(--text3); margin-bottom: 28px; }
+.sidebar-nav {
+  padding: 16px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
 
-/* Opciones de rol */
-.role-options { display: flex; flex-direction: column; gap: 12px; }
-
-.role-btn {
+.nav-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--bg3);
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  width: 100%;
-}
-.role-btn:hover { transform: translateX(4px); }
-
-.role-employee:hover { border-color: var(--blue); }
-.role-admin:hover    { border-color: var(--accent); }
-
-.role-icon { font-size: 24px; }
-.role-info { flex: 1; }
-.role-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
-.role-hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
-.role-arrow { font-size: 18px; color: var(--text3); transition: color 0.15s; }
-.role-btn:hover .role-arrow { color: var(--text); }
-
-/* Formulario login */
-.login-form { display: flex; flex-direction: column; gap: 16px; }
-
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
-.form-group input {
-  padding: 11px 14px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-family: 'DM Mono', monospace;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text2);
+  text-decoration: none;
   font-size: 13px;
-  width: 100%;
-  transition: border-color 0.15s;
+  transition: 0.15s;
 }
-.form-group input:focus { outline: none; border-color: var(--accent); }
-.form-group input:disabled { opacity: 0.5; }
+.nav-item:hover  { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(249,115,22,0.12); color: var(--accent); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
 
-.pass-wrap { position: relative; }
-.pass-wrap input { padding-right: 44px; }
-.pass-eye {
-  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.6;
-}
-.pass-eye:hover { opacity: 1; }
+.nav-separator     { height: 1px; background: var(--border); margin: 8px 0 4px; }
+.nav-section-label { font-size: 9px; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 12px 4px; }
 
-.login-error {
-  display: flex; align-items: center; gap: 8px;
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.3);
-  border-radius: 8px; padding: 10px 14px;
-  color: var(--red); font-size: 12px;
-}
-
-.btn-login {
+.sidebar-footer {
   padding: 12px;
-  background: var(--accent);
-  border: none; border-radius: 10px;
-  color: white;
-  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: opacity 0.15s;
-  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.btn-login:hover:not(:disabled) { opacity: 0.85; }
-.btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.spinner-sm {
-  width: 14px; height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+.exchange-rate {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.er-label  { font-size: 10px; color: var(--text3); text-transform: uppercase; }
+.er-value  { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent); margin: 4px 0; }
+.er-source { font-size: 10px; color: var(--text3); }
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.user-info { display: flex; align-items: center; gap: 8px; }
+.user-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+}
+.user-name { font-size: 12px; font-weight: 500; }
+.user-role { font-size: 10px; color: var(--accent); }
+.btn-logout {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 4px 7px;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+.employee-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.employee-icon   { font-size: 18px; opacity: 0.5; }
+.employee-label  { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.btn-admin-login {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.btn-admin-login:hover { text-decoration: underline; }
+
+.main-content {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  background: var(--bg);
+}
 </style>

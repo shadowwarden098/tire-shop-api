@@ -2,11 +2,10 @@
   <div class="app-shell">
 
     <!-- Sin layout para login -->
-    <router-view v-if="$route.meta && $route.meta.public" />
+    <router-view v-if="$route.meta && $route.meta.isLogin" />
 
     <!-- Layout principal -->
     <template v-else>
-      <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-brand">
           <span class="brand-icon">⬡</span>
@@ -17,7 +16,7 @@
         </div>
 
         <nav class="sidebar-nav">
-          <router-link to="/" class="nav-item" active-class="active" exact>
+          <router-link to="/dashboard" class="nav-item" active-class="active">
             <span class="nav-icon">◈</span>
             <span>Menu</span>
           </router-link>
@@ -42,7 +41,6 @@
             <span>Servicios</span>
           </router-link>
 
-          <!-- Solo admin -->
           <template v-if="isAdmin">
             <div class="nav-separator"></div>
             <div class="nav-section-label">Administración</div>
@@ -53,16 +51,13 @@
           </template>
         </nav>
 
-        <!-- Footer -->
         <div class="sidebar-footer">
-          <!-- Tipo de cambio -->
           <div class="exchange-rate" v-if="exchangeRate">
             <div class="er-label">Tipo de Cambio</div>
             <div class="er-value">1 USD = S/ {{ exchangeRate.sell_rate }} PEN</div>
             <div class="er-source">Actualizado • {{ formatExchangeDate(exchangeRate.date) }}</div>
           </div>
 
-          <!-- Admin logueado -->
           <div class="user-bar" v-if="isAdmin">
             <div class="user-info">
               <div class="user-avatar">{{ currentUser.name[0].toUpperCase() }}</div>
@@ -74,12 +69,11 @@
             <button class="btn-logout" @click="logout" title="Cerrar sesión">⏻</button>
           </div>
 
-          <!-- Modo empleado -->
           <div class="employee-bar" v-else>
             <span class="employee-icon">👤</span>
             <div class="employee-detail">
               <div class="employee-label">Modo Empleado</div>
-              <button class="btn-admin-login" @click="$router.push('/login')">
+              <button class="btn-admin-login" @click="$router.push('/')">
                 Ingresar como Admin →
               </button>
             </div>
@@ -87,7 +81,6 @@
         </div>
       </aside>
 
-      <!-- Main -->
       <main class="main-content">
         <router-view />
       </main>
@@ -97,14 +90,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
-const exchangeRate = ref(null)
+const route  = useRoute()
 
+const exchangeRate = ref(null)
 const token    = ref(localStorage.getItem('auth_token'))
 const userJson = ref(localStorage.getItem('auth_user'))
+
+// Re-leer localStorage cada vez que cambia la ruta
+watch(route, () => {
+  token.value    = localStorage.getItem('auth_token')
+  userJson.value = localStorage.getItem('auth_user')
+})
 
 const currentUser = computed(() => {
   if (userJson.value) {
@@ -191,7 +191,6 @@ html, body {
 </style>
 
 <style scoped>
-/* Sidebar */
 .sidebar {
   width: var(--sidebar-w);
   background: var(--bg2);
@@ -241,7 +240,6 @@ html, body {
 .nav-separator     { height: 1px; background: var(--border); margin: 8px 0 4px; }
 .nav-section-label { font-size: 9px; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 12px 4px; }
 
-/* Footer */
 .sidebar-footer {
   padding: 12px;
   border-top: 1px solid var(--border);
@@ -260,7 +258,6 @@ html, body {
 .er-value  { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent); margin: 4px 0; }
 .er-source { font-size: 10px; color: var(--text3); }
 
-/* Admin logueado */
 .user-bar {
   display: flex;
   align-items: center;
@@ -293,7 +290,6 @@ html, body {
 }
 .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
-/* Modo empleado */
 .employee-bar {
   display: flex;
   align-items: center;
@@ -317,7 +313,6 @@ html, body {
 }
 .btn-admin-login:hover { text-decoration: underline; }
 
-/* Main */
 .main-content {
   margin-left: var(--sidebar-w);
   flex: 1;

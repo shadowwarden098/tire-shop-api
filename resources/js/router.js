@@ -8,16 +8,14 @@ import Reports    from './components/Reports.vue'
 import Login      from './components/Login.vue'
 
 const routes = [
-    // Pantalla de bienvenida / selección de rol
-    { path: '/login', component: Login, name: 'login', meta: { public: true } },
-
-    // App principal
-    { path: '/',          component: Dashboard, name: 'dashboard' },
+    { path: '/',          component: Login,     name: 'login',     meta: { isLogin: true } },
+    { path: '/dashboard', component: Dashboard, name: 'dashboard' },
     { path: '/products',  component: Products,  name: 'products'  },
     { path: '/customers', component: Customers, name: 'customers' },
     { path: '/sales',     component: Sales,     name: 'sales'     },
     { path: '/services',  component: Services,  name: 'services'  },
     { path: '/reports',   component: Reports,   name: 'reports',  meta: { adminOnly: true } },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
@@ -25,29 +23,25 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to, from, next) => {
-    // Ruta pública siempre pasa
-    if (to.meta.public) return next()
-
+router.beforeEach((to, from) => {
     const token    = localStorage.getItem('auth_token')
     const userJson = localStorage.getItem('auth_user')
     const role     = localStorage.getItem('auth_role')
     const user     = userJson ? JSON.parse(userJson) : null
 
-    // Si no eligió rol todavía → mostrar pantalla de bienvenida
-    if (!role && !token) {
-        return next('/login')
+    if (to.meta.isLogin) {
+        if (token) return '/dashboard'
+        return true
     }
 
-    // Ruta solo admin
+    if (!token && !role) return '/'
+
     if (to.meta.adminOnly) {
-        if (token && user && user.role === 'admin') {
-            return next()
-        }
-        return next('/login')
+        if (token && user && user.role === 'admin') return true
+        return '/'
     }
 
-    next()
+    return true
 })
 
 export default router
