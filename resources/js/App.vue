@@ -84,6 +84,9 @@
       <main class="main-content">
         <router-view />
       </main>
+
+      <!-- Asistente IA - Solo para admins -->
+      <AiAssistant v-if="isAdmin" />
     </template>
 
   </div>
@@ -92,6 +95,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import AiAssistant from './components/AiAssistant.vue'
 
 const router = useRouter()
 const route  = useRoute()
