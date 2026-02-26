@@ -76,6 +76,9 @@
       <main class="main">
         <router-view />
       </main>
+
+      <!-- 👇 ASISTENTE IA - Solo para admins -->
+      <AiAssistant v-if="isAdmin" />
     </div>
   </div>
 </template>
@@ -83,6 +86,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import AiAssistant from './AiAssistant.vue' // 👈 IMPORTAR
 
 const router      = useRouter()
 const exchangeRate = ref(null)
@@ -127,6 +131,7 @@ const loadExchangeRate = async () => {
 onMounted(loadExchangeRate)
 </script>
 
+<!-- El resto de los estilos quedan igual -->
 <style>
 :root {
   --bg: #0a0c10;
@@ -147,60 +152,42 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monosp
 
 <style scoped>
 #app { min-height: 100vh; }
-
 .layout { display: flex; min-height: 100vh; }
-
-/* ─── SIDEBAR ─── */
 .sidebar {
-  width: 220px; min-width: 220px;
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
+  width: 220px; min-width: 220px; background: var(--bg2);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
   position: sticky; top: 0; height: 100vh; overflow-y: auto;
 }
-
 .sidebar-brand {
   display: flex; align-items: center; gap: 12px;
-  padding: 24px 20px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 24px 20px 20px; border-bottom: 1px solid var(--border);
 }
 .brand-icon { font-size: 24px; color: var(--accent); }
 .brand-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; line-height: 1.2; }
 .brand-sub  { font-size: 8px; color: var(--text3); letter-spacing: 0.15em; margin-top: 4px; }
-
 .sidebar-nav { padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
-
 .nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px; border-radius: 8px;
-  color: var(--text2); text-decoration: none;
-  font-size: 13px; transition: all 0.15s;
+  color: var(--text2); text-decoration: none; font-size: 13px; transition: all 0.15s;
 }
 .nav-item:hover { background: var(--bg3); color: var(--text); }
 .nav-item.active { background: rgba(249,115,22,0.12); color: var(--accent); }
 .nav-icon { font-size: 14px; width: 18px; text-align: center; }
-
 .nav-separator { height: 1px; background: var(--border); margin: 10px 0 6px; }
 .nav-section-label { font-size: 9px; color: var(--text3); letter-spacing: 0.15em; padding: 0 12px 6px; text-transform: uppercase; }
-
-/* ─── SIDEBAR FOOTER ─── */
 .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
-
-.exchange-rate {
-  background: var(--bg3); border-radius: 10px; padding: 12px 14px;
-}
+.exchange-rate { background: var(--bg3); border-radius: 10px; padding: 12px 14px; }
 .er-label { font-size: 9px; color: var(--text3); letter-spacing: 0.12em; margin-bottom: 4px; }
 .er-value { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent); }
 .er-date  { font-size: 10px; color: var(--text3); margin-top: 2px; }
-
 .user-bar {
   display: flex; align-items: center; justify-content: space-between;
   background: var(--bg3); border-radius: 10px; padding: 10px 12px;
 }
 .user-info { display: flex; align-items: center; gap: 10px; }
 .user-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--accent); color: white;
+  width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: white;
   display: flex; align-items: center; justify-content: center;
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
 }
@@ -208,11 +195,9 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monosp
 .user-role { font-size: 10px; color: var(--accent); }
 .btn-logout {
   background: none; border: 1px solid var(--border); border-radius: 6px;
-  color: var(--text3); cursor: pointer; padding: 4px 7px; font-size: 14px;
-  transition: all 0.15s;
+  color: var(--text3); cursor: pointer; padding: 4px 7px; font-size: 14px; transition: all 0.15s;
 }
 .btn-logout:hover { border-color: var(--red); color: var(--red); }
-
 .employee-bar {
   display: flex; align-items: center; gap: 10px;
   background: var(--bg3); border-radius: 10px; padding: 10px 12px;
@@ -224,7 +209,5 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monosp
   font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; padding: 0;
 }
 .btn-admin-login:hover { text-decoration: underline; }
-
-/* ─── MAIN ─── */
 .main { flex: 1; overflow-y: auto; }
 </style>

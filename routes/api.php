@@ -10,6 +10,8 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AiController;
+
 
 // ─── AUTH (públicas) ───────────────────────────────────────────────────────
 Route::prefix('auth')->group(function () {
@@ -45,7 +47,7 @@ Route::get('exchange-rate/convert',  [ExchangeRateController::class, 'convert'])
 Route::get('reports/dashboard',      [ReportController::class, 'dashboard']);
 
 // ─── RUTAS SOLO ADMIN (requieren token) ───────────────────────────────────
-Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('auth/logout',           [AuthController::class, 'logout']);
     Route::get('auth/me',                [AuthController::class, 'me']);
 
@@ -65,4 +67,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::put('users/{id}',         [AuthController::class, 'update']);
         Route::delete('users/{id}',      [AuthController::class, 'destroy']);
     });
+
+  // Ruta pública de IA
+Route::post('ai/chat', [AiController::class, 'chat']);
 });

@@ -116,6 +116,7 @@ const handleLogin = async () => {
 <style scoped>
 .welcome-page {
   min-height: 100vh;
+  width: 100%;          /* ← ESTA es la línea que falta */
   background: var(--bg);
   display: flex;
   align-items: center;
