@@ -18,6 +18,9 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 });
 
+// ─── IA — pública para empleados, admin usa su token ──────────────────────
+Route::post('ai/chat', [AiController::class, 'chat']);
+
 // ─── RUTAS PÚBLICAS (empleados sin login) ─────────────────────────────────
 Route::apiResource('products',       ProductController::class);
 Route::post('products/{id}/update-stock', [ProductController::class, 'updateStock']);
@@ -44,7 +47,13 @@ Route::get('exchange-rate/current',  [ExchangeRateController::class, 'current'])
 Route::get('exchange-rate/history',  [ExchangeRateController::class, 'history']);
 Route::get('exchange-rate/convert',  [ExchangeRateController::class, 'convert']);
 
+// legacy entry that dispatches based on role
 Route::get('reports/dashboard',      [ReportController::class, 'dashboard']);
+
+// endpoints separados por rol
+Route::get('reports/admin-dashboard', [ReportController::class, 'adminDashboard'])
+      ->middleware('auth:sanctum');
+Route::get('reports/staff-dashboard', [ReportController::class, 'staffDashboard']);
 
 // ─── RUTAS SOLO ADMIN (requieren token) ───────────────────────────────────
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -53,6 +62,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('reports/financial',      [ReportController::class, 'financial']);
     Route::get('reports/inventory',      [ReportController::class, 'inventory']);
+    // PDF export (dev requires barryvdh/laravel-dompdf or similar)
+    Route::get('reports/export',         [ReportController::class, 'export'])->name('reports.export');
 
     Route::apiResource('expenses',       ExpenseController::class);
     Route::get('expenses/summary',       [ExpenseController::class, 'summary']);
@@ -67,7 +78,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('users/{id}',         [AuthController::class, 'update']);
         Route::delete('users/{id}',      [AuthController::class, 'destroy']);
     });
-
-  // Ruta pública de IA
-Route::post('ai/chat', [AiController::class, 'chat']);
 });

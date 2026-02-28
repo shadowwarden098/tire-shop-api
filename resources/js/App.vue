@@ -85,8 +85,8 @@
         <router-view />
       </main>
 
-      <!-- Asistente IA - Solo para admins -->
-      <AiAssistant v-if="isAdmin" />
+      <!-- ✅ Asistente IA — siempre visible (empleados y admins) -->
+      <AiAssistant />
     </template>
 
   </div>

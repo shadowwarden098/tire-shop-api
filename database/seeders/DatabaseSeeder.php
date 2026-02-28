@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->command->info('   1. Crea productos en: POST /api/products');
         $this->command->info('   2. Crea clientes en: POST /api/customers');
         $this->command->info('   3. Registra ventas en: POST /api/sales');
-        $this->command->info('   4. Ve el dashboard en: GET /api/reports/dashboard');
+        $this->command->info('   4. Ve el dashboard en: GET /api/reports/staff-dashboard (o /api/reports/admin-dashboard como admin)');
         $this->command->info('');
     }
 }

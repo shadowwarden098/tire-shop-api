@@ -22,6 +22,11 @@
 - 💱 Tipo de cambio
 - 📊 Reportes
 
+- 🧾 Endpoints de dashboard separados por rol:
+  - `/api/reports/staff-dashboard` (vista protegida para personal)
+  - `/api/reports/admin-dashboard` (requiere token de admin)
+  - `/api/reports/export` (admin) — genera PDF de informes financieros o inventario; instala `barryvdh/laravel-dompdf` para habilitar la exportación.
+
 Este proyecto fue creado como **práctica profesional** y simulación de un **sistema comercial real**.
 
 ---
@@ -46,3 +51,8 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate
 php artisan serve
+
+# uso
+- empleados: GET /api/reports/staff-dashboard
+- administradores: GET /api/reports/admin-dashboard (requiere token)
+- desde el chat IA el admin puede pedir: "Generar PDF de ganancias" o "Descargar PDF de inventario" y recibirá un enlace.

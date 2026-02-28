@@ -33,6 +33,7 @@
       </div>
 
       <div v-if="finLoading" class="loading-state"><div class="spinner"></div> Calculando...</div>
+      <div v-else-if="finError" class="loading-state"><span>⚠ {{ finError }}</span></div>
       <template v-else-if="fin">
         <div class="kpi-grid">
           <div class="kpi-card">
@@ -109,6 +110,7 @@
     <!-- INVENTARIO -->
     <div v-if="activeTab === 'inventory'">
       <div v-if="invLoading" class="loading-state"><div class="spinner"></div> Calculando...</div>
+    <div v-else-if="invError" class="loading-state"><span>⚠ {{ invError }}</span></div>
       <template v-else-if="inv">
         <div class="kpi-grid">
           <div class="kpi-card">
@@ -168,17 +170,28 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
 const activeTab = ref('financial')
 const fin = ref(null)
 const finLoading = ref(false)
+const finError = ref('')
 const dateFrom = ref('')
 const dateTo = ref('')
 const inv = ref(null)
 const invLoading = ref(false)
+const invError = ref('')
 
 const fmt = n => parseFloat(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const shortDate = d => { const dt = new Date(d); return `${dt.getDate()}/${dt.getMonth()+1}` }
+
+// headers helper to include token when available (endpoints son admin only)
+const authHeaders = () => {
+  const h = { 'Accept': 'application/json' }
+  const tok = localStorage.getItem('auth_token')
+  if (tok) h.Authorization = `Bearer ${tok}`
+  return h
+}
 
 const maxRevenue = computed(() => {
   if (!fin.value || !fin.value.daily_sales) return 1
@@ -222,26 +235,60 @@ const setQuick = period => {
 const loadFinancial = async () => {
   finLoading.value = true
   const params = new URLSearchParams({
-    ...(dateFrom.value && { date_from: dateFrom.value }),
-    ...(dateTo.value && { date_to: dateTo.value }),
+    ...(dateFrom.value && { start_date: dateFrom.value }),
+    ...(dateTo.value && { end_date: dateTo.value }),
   })
   try {
-    const res = await fetch(`/api/reports/financial?${params}`)
+    const res = await fetch(`/api/reports/financial?${params}`, { headers: authHeaders() })
     const json = await res.json()
-    fin.value = json.data || null
+    if (!res.ok || !json.success) {
+      finError.value = json.message || 'No se pudo cargar el reporte'
+      fin.value = null
+    } else {
+      fin.value = json.data
+      finError.value = ''
+    }
+  } catch(e) {
+    finError.value = 'Error de red al obtener reporte'
+    fin.value = null
   } finally { finLoading.value = false }
 }
 
 const loadInventory = async () => {
   invLoading.value = true
   try {
-    const res = await fetch('/api/reports/inventory')
+    const res = await fetch('/api/reports/inventory', { headers: authHeaders() })
     const json = await res.json()
-    inv.value = json.data || null
+    if (!res.ok || !json.success) {
+      invError.value = json.message || 'No se pudo cargar inventario'
+      inv.value = null
+    } else {
+      inv.value = json.data
+      invError.value = ''
+    }
+  } catch(e) {
+    invError.value = 'Error de red al obtener inventario'
+    inv.value = null
   } finally { invLoading.value = false }
 }
 
-onMounted(() => setQuick('this_month'))
+onMounted(() => {
+  const route = useRoute()
+  // si hay query, usarlas en lugar de la configuración rápida mensual
+  if (route.query.date_from) dateFrom.value = route.query.date_from
+  if (route.query.date_to) dateTo.value = route.query.date_to
+  if (route.query.tab) activeTab.value = route.query.tab
+
+  if (dateFrom.value && dateTo.value) {
+    // montón de fechas especificadas previamente
+  } else {
+    setQuick('this_month')
+  }
+
+  // carga según pestaña
+  if (activeTab.value === 'financial') loadFinancial()
+  else loadInventory()
+})
 </script>
 
 <style scoped>

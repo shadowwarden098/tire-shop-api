@@ -3,8 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use Rap2hpoutre\LaravelLogViewer\LogViewerController;
 
-// Log viewer
-Route::get('log-viewer', [LogViewerController::class, 'index']);
+// Log viewer — solo admin
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('log-viewer', [LogViewerController::class, 'index']);
+});
 
 // SPA — todas las rutas van al blade que monta Vue
 Route::get('/{any?}', function () {

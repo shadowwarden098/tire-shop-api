@@ -8,12 +8,12 @@
 
     <!-- Panel de chat -->
     <transition name="slide-up">
-      <div v-if="isOpen" class="ai-chat-panel">
-        <div class="ai-header">
+      <div v-if="isOpen" class="ai-chat-panel" :class="{ 'admin-mode': isAdmin }">
+        <div class="ai-header" :class="{ 'admin-header': isAdmin }">
           <div class="ai-header-info">
-            <span class="ai-avatar">🤖</span>
+            <span class="ai-avatar">{{ aiAvatar }}</span>
             <div>
-              <h3>Asistente IA</h3>
+              <h3>{{ aiName }}</h3>
               <small>Importaciones Adan</small>
             </div>
           </div>
@@ -24,7 +24,7 @@
         <div class="ai-messages" ref="messagesContainer">
           <!-- Bienvenida -->
           <div v-if="messages.length === 0" class="welcome-message">
-            <p>¡Hola! ¿En qué te puedo ayudar?</p>
+            <p class="welcome-text">{{ welcomeMessage }}</p>
             <div class="suggestions">
               <button v-for="s in suggestions" :key="s" @click="sendSuggestion(s)" class="suggestion-chip">
                 {{ s }}
@@ -35,7 +35,7 @@
           <!-- Historial -->
           <div v-for="(msg, i) in messages" :key="i" class="message" :class="msg.role">
             <div class="message-bubble">
-              <span class="message-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</span>
+              <span class="message-avatar">{{ msg.role === 'user' ? '👤' : aiAvatar }}</span>
               <div class="message-content" v-html="msg.content"></div>
             </div>
           </div>
@@ -43,7 +43,7 @@
           <!-- Typing -->
           <div v-if="isLoading" class="message assistant">
             <div class="message-bubble">
-              <span class="message-avatar">🤖</span>
+              <span class="message-avatar">{{ aiAvatar }}</span>
               <div class="typing-indicator">
                 <span></span><span></span><span></span>
               </div>
@@ -81,13 +81,57 @@ export default {
       isLoading: false,
       userInput: '',
       messages: [],
-      suggestions: [
-        '📊 ¿Cómo van las ventas este mes?',
-        '⚠️ ¿Qué productos tienen stock bajo?',
-        '👥 ¿Quiénes son mis mejores clientes?',
-        '💡 ¿Qué debería reabastecer?',
-      ],
+      userName: '',
     }
+  },
+  mounted() {
+    const user = localStorage.getItem('auth_user')
+    if (user) {
+      try {
+        this.userName = JSON.parse(user).name || 'Usuario'
+      } catch {}
+    }
+  },
+  computed: {
+    isAdmin() {
+      const user = localStorage.getItem('auth_user')
+      if (!user) return false
+      try { return JSON.parse(user).role === 'admin' } catch { return false }
+    },
+    aiAvatar() {
+      return this.isAdmin ? '📊' : '🔧'
+    },
+    aiName() {
+      return this.isAdmin ? 'Asesor de Negocios' : 'Asesor de Ventas'
+    },
+    welcomeMessage() {
+      if (this.isAdmin) {
+        return `Bienvenido, ${this.userName}. Analicemos el rendimiento de hoy.`
+      } else {
+        return `¡Hola ${this.userName}! Gracias por elegir Importaciones Adan. ¿Qué necesitas para tu vehículo?`
+      }
+    },
+    suggestions() {
+      if (this.isAdmin) {
+        return [
+          '📈 Resumen de ventas de hoy',
+          '⚠️ Productos con stock bajo',
+          '👥 Clientes inactivos',
+          '💱 Tipo de cambio actual',
+          '� Generar PDF de ganancias',
+          '📄 Generar PDF de inventario',
+          '�👥 Rendimiento de vendedores',
+          '💸 Gastos vs ingresos',
+        ]
+      } else {
+        return [
+          '🔍 Llantas según mi vehículo',
+          '📦 Mis últimas compras',
+          '💳 Opciones de pago',
+          '🛠️ Agendar instalación',
+        ]
+      }
+    },
   },
   methods: {
     toggleChat() {
@@ -105,6 +149,18 @@ export default {
       const text = this.userInput.trim()
       if (!text || this.isLoading) return
 
+      // Prevent non-admins from asking about corporate profits/financials
+      if (!this.isAdmin && /(gananc(?:ia|ias)|utilidad(?:es)?|beneficio|margenes?|reportes?|estad[ií]sticas?|ventas? totales?|financieras?)/i.test(text)) {
+        this.messages.push({
+          role: 'assistant',
+          content: '❌ Lo siento, esa información solo la maneja el administrador. 😊',
+        })
+        this.userInput = ''
+        // no loading state needed, we immediately return
+        this.$nextTick(() => this.scrollToBottom())
+        return
+      }
+
       this.messages.push({ role: 'user', content: text })
       this.userInput = ''
       this.isLoading = true
@@ -112,14 +168,14 @@ export default {
 
       try {
         const token = localStorage.getItem('auth_token')
-        const history = this.messages.slice(0, -1)
+        const headers = token
+          ? { Authorization: `Bearer ${token}` }
+          : {}
 
         const { data } = await axios.post('/api/ai/chat', {
           message: text,
-          history: history,
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+          history: this.messages.slice(0, -1),
+        }, { headers })
 
         this.messages.push({ role: 'assistant', content: data.reply })
       } catch (error) {
@@ -160,11 +216,20 @@ export default {
   border: 1px solid #e5e7eb;
 }
 
+.ai-chat-panel.admin-mode {
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
 .ai-header {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white; padding: 14px 16px;
   display: flex; justify-content: space-between; align-items: center;
 }
+
+.ai-header.admin-header {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
 .ai-header-info { display: flex; align-items: center; gap: 10px; }
 .ai-avatar { font-size: 24px; }
 .ai-header h3 { margin: 0; font-size: 15px; }
