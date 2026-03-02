@@ -114,23 +114,23 @@ class ReportController extends Controller
                 'total_revenue' => round($totalRevenue, 2),
                 'expenses'    => ['total' => round($totalExpenses, 2), 'by_category' => $expensesByCategory],
                 'profitability' => [
-                    'gross_profit'           => round($grossProfit, 2),
-                    'net_profit'             => round($netProfit, 2),
+                    'gross_profit'             => round($grossProfit, 2),
+                    'net_profit'               => round($netProfit, 2),
                     'profit_margin_percentage' => round($profitMargin, 2),
                 ],
                 'inventory' => [
-                    'value_usd'      => round($inventoryValueUSD, 2),
-                    'value_pen'      => round($inventoryValuePEN, 2),
+                    'value_usd'       => round($inventoryValueUSD, 2),
+                    'value_pen'       => round($inventoryValuePEN, 2),
                     'low_stock_items' => $lowStockCount,
-                    'total_products' => Product::active()->count(),
+                    'total_products'  => Product::active()->count(),
                 ],
                 'growth' => [
                     'revenue_growth_percentage' => round($revenueGrowth, 2),
                     'previous_revenue'          => round($prevSalesRevenue, 2),
                 ],
-                'clv'              => round($clv, 2),
-                'churn_rate'       => round($churnRate, 2),
-                'flow_projection'  => round($projection, 2),
+                'clv'             => round($clv, 2),
+                'churn_rate'      => round($churnRate, 2),
+                'flow_projection' => round($projection, 2),
                 'revenue_composition' => [
                     'ventas'    => round($salesRevenue, 2),
                     'servicios' => round($servicesRevenue, 2),
@@ -198,7 +198,7 @@ class ReportController extends Controller
             ->limit(20)
             ->get();
 
-        $services     = ServiceRecord::completed()->whereBetween('service_date', [$startDate, $endDate])->with('service')->get();
+        $services       = ServiceRecord::completed()->whereBetween('service_date', [$startDate, $endDate])->with('service')->get();
         $servicesByType = $services->groupBy('service.name')->map(fn($g) => [
             'count'   => $g->count(),
             'revenue' => $g->sum('total_pen'),
@@ -216,16 +216,19 @@ class ReportController extends Controller
         ]);
         $expensesByDay = $expenses->groupBy(fn($e) => $e->expense_date->format('Y-m-d'))->map(fn($g) => $g->sum('amount_pen'));
 
-        $totalIncome  = $sales->sum('total_pen') + $services->sum('total_pen');
-        $totalCosts   = $sales->sum(fn($sale) => $sale->items->sum(fn($item) => $item->unit_cost_usd * $item->quantity * $sale->exchange_rate));
+        $totalIncome   = $sales->sum('total_pen') + $services->sum('total_pen');
+        $totalCosts    = $sales->sum(fn($sale) => $sale->items->sum(fn($item) => $item->unit_cost_usd * $item->quantity * $sale->exchange_rate));
         $totalExpenses = $expenses->sum('amount_pen');
-        $grossProfit  = $totalIncome - $totalCosts;
-        $netProfit    = $grossProfit - $totalExpenses;
+        $grossProfit   = $totalIncome - $totalCosts;
+        $netProfit     = $grossProfit - $totalExpenses;
 
         return response()->json([
             'success' => true,
             'data' => [
-                'date_range' => ['start' => Carbon::parse($startDate)->format('Y-m-d'), 'end' => Carbon::parse($endDate)->format('Y-m-d')],
+                'date_range' => [
+                    'start' => Carbon::parse($startDate)->format('Y-m-d'),
+                    'end'   => Carbon::parse($endDate)->format('Y-m-d'),
+                ],
                 'summary' => [
                     'total_income'   => round($totalIncome, 2),
                     'total_costs'    => round($totalCosts, 2),
@@ -264,19 +267,19 @@ class ReportController extends Controller
         $products     = Product::active()->get();
 
         $inventory = $products->map(fn($p) => [
-            'id'             => $p->id,
-            'name'           => $p->name,
-            'brand'          => $p->brand,
-            'model'          => $p->model,
-            'size'           => $p->size,
-            'stock'          => $p->stock,
-            'cost_usd'       => $p->cost_usd,
-            'price_usd'      => $p->price_usd,
-            'cost_pen'       => round($p->cost_usd * $exchangeRate->buy_rate, 2),
-            'price_pen'      => round($p->price_usd * $exchangeRate->sell_rate, 2),
+            'id'              => $p->id,
+            'name'            => $p->name,
+            'brand'           => $p->brand,
+            'model'           => $p->model,
+            'size'            => $p->size,
+            'stock'           => $p->stock,
+            'cost_usd'        => $p->cost_usd,
+            'price_usd'       => $p->price_usd,
+            'cost_pen'        => round($p->cost_usd * $exchangeRate->buy_rate, 2),
+            'price_pen'       => round($p->price_usd * $exchangeRate->sell_rate, 2),
             'stock_value_usd' => round($p->cost_usd * $p->stock, 2),
             'stock_value_pen' => round($p->cost_usd * $p->stock * $exchangeRate->buy_rate, 2),
-            'is_low_stock'   => $p->isLowStock(),
+            'is_low_stock'    => $p->isLowStock(),
         ]);
 
         return response()->json([
@@ -290,22 +293,60 @@ class ReportController extends Controller
                     'total_value_pen' => round($inventory->sum('stock_value_pen'), 2),
                     'low_stock_count' => $inventory->where('is_low_stock', true)->count(),
                 ],
-                'exchange_rate' => ['buy' => $exchangeRate->buy_rate, 'sell' => $exchangeRate->sell_rate],
+                'exchange_rate' => [
+                    'buy'  => $exchangeRate->buy_rate,
+                    'sell' => $exchangeRate->sell_rate,
+                ],
             ],
         ]);
     }
 
     /**
-     * Export data to PDF
-     * Requiere: composer require barryvdh/laravel-dompdf
+     * Descarga el PDF directamente al navegador.
+     * GET /api/reports/download/{type}
+     * type: financial | inventory
+     * Parámetros opcionales para financial: start_date, end_date (formato Y-m-d)
+     */
+    public function download(Request $request, string $type = 'financial')
+    {
+        if (!in_array($type, ['financial', 'inventory'])) {
+            abort(404, 'Tipo de reporte no válido. Usa: financial o inventory');
+        }
+
+        if (!class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            abort(500, 'Librería PDF no instalada. Ejecuta: composer require barryvdh/laravel-dompdf');
+        }
+
+        if ($type === 'financial') {
+            $request->merge([
+                'start_date' => $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d')),
+                'end_date'   => $request->get('end_date',   Carbon::now()->format('Y-m-d')),
+            ]);
+            $resp    = $this->financial($request);
+            $payload = $resp->getData(true)['data'] ?? [];
+        } else {
+            $resp    = $this->inventory();
+            $payload = $resp->getData(true)['data'] ?? [];
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.' . $type, ['data' => $payload])
+            ->setPaper('a4', 'portrait')
+            ->setOption('defaultFont', 'DejaVu Sans')
+            ->setOption('isRemoteEnabled', false)
+            ->setOption('isHtml5ParserEnabled', true);
+
+        $filename = 'Importaciones_Adan_' . ucfirst($type) . '_' . now()->format('d-m-Y') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Export data to PDF (guardado en storage — usado por AiController)
      */
     public function export(Request $request)
     {
-        $type      = $request->get('type', 'financial');
-        $startDate = $request->get('start_date', Carbon::now()->startOfMonth());
-        $endDate   = $request->get('end_date', Carbon::now());
+        $type = $request->get('type', 'financial');
 
-        // Verificar que la librería PDF esté instalada
         if (!class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
             return response()->json([
                 'success' => false,
@@ -313,16 +354,23 @@ class ReportController extends Controller
             ], 500);
         }
 
-        $payload = [];
         if ($type === 'financial') {
+            $request->merge([
+                'start_date' => $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d')),
+                'end_date'   => $request->get('end_date',   Carbon::now()->format('Y-m-d')),
+            ]);
             $resp    = $this->financial($request);
             $payload = $resp->getData(true)['data'] ?? [];
         } elseif ($type === 'inventory') {
             $resp    = $this->inventory();
             $payload = $resp->getData(true)['data'] ?? [];
+        } else {
+            return response()->json(['success' => false, 'message' => 'Tipo inválido'], 400);
         }
 
-        $pdf      = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.' . $type, ['data' => $payload]);
+        $pdf      = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.' . $type, ['data' => $payload])
+            ->setPaper('a4', 'portrait')
+            ->setOption('defaultFont', 'DejaVu Sans');
         $filename = "report_{$type}_" . now()->format('YmdHis') . ".pdf";
         Storage::put('public/reports/' . $filename, $pdf->output());
         $url = url('storage/reports/' . $filename);
@@ -330,6 +378,7 @@ class ReportController extends Controller
         return response()->json(['success' => true, 'url' => $url]);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
     private function getDateRange($period)
     {
         $today = Carbon::today();
