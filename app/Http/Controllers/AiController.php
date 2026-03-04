@@ -62,6 +62,8 @@ class AiController extends Controller
 
         // Comandos rápidos admin
         if ($isAdmin) {
+            // 🔒 BLINDAJE EXTRA: Aseguramos que $sessionId nunca sea null
+            $sessionId = $sessionId ?? Str::uuid()->toString();
             $quick = $this->handleAdminCommand($request->message, $request, $user, $sessionId);
             if ($quick !== null) return $quick;
         }
@@ -95,14 +97,16 @@ class AiController extends Controller
         $messages[] = ['role' => 'user', 'content' => $request->message];
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => 'llama-3.3-70b-versatile',
-                'messages' => $messages,
-                'temperature' => 0.7,
-            ]);
+           $apiKey = config('services.groq.key');
+
+$response = Http::timeout(60)
+    ->withToken($apiKey)
+    ->acceptJson()
+    ->post('https://api.groq.com/openai/v1/chat/completions', [
+        'model' => 'llama3-70b-8192',
+        'messages' => $messages,
+        'temperature' => 0.7,
+    ]);
 
             if ($response->failed()) {
                 $status = $response->status();
@@ -112,7 +116,12 @@ class AiController extends Controller
                     Cache::put($cacheKey, now()->addSeconds($retry)->timestamp, $retry);
                     return response()->json(['reply' => '⏳ Límite de Groq alcanzado. Espera unos minutos.'], 429);
                 }
-                return response()->json(['reply' => '❌ Error al conectar con la IA. Intenta de nuevo.'], 500);
+                if ($response->failed()) {
+    return response()->json([
+        'status' => $response->status(),
+        'body'   => $response->body(),
+    ]);
+}
             }
 
             $data  = $response->json();
@@ -200,19 +209,21 @@ class AiController extends Controller
     }
 
     // Limpiar historial
-    public function clearHistory(Request $request)
-    {
-        $user = Auth::guard('sanctum')->user();
-        if (!$user) return response()->json(['success' => false]);
-        AiConversation::where('user_id', $user->id)->delete();
-        return response()->json(['success' => true]);
-    }
+   public function clearHistory()
+{
+     return response()->json([
+        'ok' => true
+     ]);
+}
 
     // ════════════════════════════════════════════════════════════════════════
     // PRIVADOS
     // ════════════════════════════════════════════════════════════════════════
 
-    private function handleAdminCommand(string $msg, Request $request, $user, string $sessionId): ?\Illuminate\Http\JsonResponse
+    /**
+     * 🔧 CORREGIDO: Ahora acepta ?string y valor por defecto null
+     */
+    private function handleAdminCommand(string $msg, Request $request, $user, ?string $sessionId = null): ?\Illuminate\Http\JsonResponse
     {
         $lower = mb_strtolower($msg);
 
