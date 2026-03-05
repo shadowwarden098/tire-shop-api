@@ -14,75 +14,78 @@ class ServiceSeeder extends Seeder
     {
         $services = [
             [
-                'name' => 'Balanceo de Llantas',
-                'code' => 'BALANC',
-                'description' => 'Balanceo de 4 llantas',
-                'price_pen' => 40.00,
+                'name'             => 'Balanceo de Llantas',
+                'code'             => 'BALANC',
+                'description'      => 'Balanceo de 4 llantas',
+                'price_pen'        => 40.00,
                 'duration_minutes' => 30,
-                'category' => 'Mantenimiento',
+                'category'         => 'Mantenimiento',
             ],
             [
-                'name' => 'Alineación y Balanceo',
-                'code' => 'ALINBAL',
-                'description' => 'Servicio completo de alineación y balanceo',
-                'price_pen' => 80.00,
+                'name'             => 'Alineación y Balanceo',
+                'code'             => 'ALINBAL',
+                'description'      => 'Servicio completo de alineación y balanceo',
+                'price_pen'        => 80.00,
                 'duration_minutes' => 60,
-                'category' => 'Mantenimiento',
+                'category'         => 'Mantenimiento',
             ],
             [
-                'name' => 'Cambio de Llantas',
-                'code' => 'CAMBIO',
-                'description' => 'Instalación y cambio de llantas',
-                'price_pen' => 20.00,
+                'name'             => 'Cambio de Llantas',
+                'code'             => 'CAMBIO',
+                'description'      => 'Instalación y cambio de llantas',
+                'price_pen'        => 20.00,
                 'duration_minutes' => 20,
-                'category' => 'Instalación',
+                'category'         => 'Instalación',
             ],
             [
-                'name' => 'Rotación de Llantas',
-                'code' => 'ROTAC',
-                'description' => 'Rotación de llantas para desgaste uniforme',
-                'price_pen' => 30.00,
+                'name'             => 'Rotación de Llantas',
+                'code'             => 'ROTAC',
+                'description'      => 'Rotación de llantas para desgaste uniforme',
+                'price_pen'        => 30.00,
                 'duration_minutes' => 25,
-                'category' => 'Mantenimiento',
+                'category'         => 'Mantenimiento',
             ],
             [
-                'name' => 'Parcheado de Llanta',
-                'code' => 'PARCHE',
-                'description' => 'Reparación de llanta con parche',
-                'price_pen' => 15.00,
+                'name'             => 'Parcheado de Llanta',
+                'code'             => 'PARCHE',
+                'description'      => 'Reparación de llanta con parche',
+                'price_pen'        => 15.00,
                 'duration_minutes' => 15,
-                'category' => 'Reparación',
+                'category'         => 'Reparación',
             ],
             [
-                'name' => 'Revisión de Presión',
-                'code' => 'PRESION',
-                'description' => 'Verificación y ajuste de presión de aire',
-                'price_pen' => 5.00,
+                'name'             => 'Revisión de Presión',
+                'code'             => 'PRESION',
+                'description'      => 'Verificación y ajuste de presión de aire',
+                'price_pen'        => 5.00,
                 'duration_minutes' => 10,
-                'category' => 'Mantenimiento',
+                'category'         => 'Mantenimiento',
             ],
             [
-                'name' => 'Vulcanizado',
-                'code' => 'VULCAN',
-                'description' => 'Vulcanizado de llanta',
-                'price_pen' => 25.00,
+                'name'             => 'Vulcanizado',
+                'code'             => 'VULCAN',
+                'description'      => 'Vulcanizado de llanta',
+                'price_pen'        => 25.00,
                 'duration_minutes' => 40,
-                'category' => 'Reparación',
+                'category'         => 'Reparación',
             ],
             [
-                'name' => 'Cambio de Válvula',
-                'code' => 'VALVUL',
-                'description' => 'Reemplazo de válvula de aire',
-                'price_pen' => 10.00,
+                'name'             => 'Cambio de Válvula',
+                'code'             => 'VALVUL',
+                'description'      => 'Reemplazo de válvula de aire',
+                'price_pen'        => 10.00,
                 'duration_minutes' => 10,
-                'category' => 'Reparación',
+                'category'         => 'Reparación',
             ],
         ];
 
         foreach ($services as $service) {
-            Service::create($service);
+            Service::updateOrCreate(
+                ['code' => $service['code']],
+                $service
+            );
         }
 
-        $this->command->info('✅ Servicios creados exitosamente');
+        $this->command->info('✅ Servicios creados/actualizados exitosamente');
     }
 }

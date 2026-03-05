@@ -4,21 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Service extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
+        'code',
         'description',
-        'price',
+        'price_pen',
         'duration_minutes',
+        'category',
         'is_active',
     ];
 
     protected $casts = [
-        'price'            => 'decimal:2',
+        'price_pen'        => 'decimal:2',
         'duration_minutes' => 'integer',
         'is_active'        => 'boolean',
     ];
